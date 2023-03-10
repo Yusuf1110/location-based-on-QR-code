@@ -39,9 +39,9 @@ function poseEstimate(points, canvasWidth) {
 async function startScan() {
   try {
     const videoInputDevices = await BrowserCodeReader.listVideoInputDevices();
-    const selectedDeviceId = videoInputDevices[0].deviceId
+    const deviceId = videoInputDevices[0].deviceId
     console.log(codeReader)
-    controls = await codeReader.decodeFromVideoDevice(selectedDeviceId, 'camera', (result) => {
+    controls = await codeReader.decodeFromVideoDevice(deviceId, 'camera', (result) => {
       if (result) {
         showPostion(result.resultPoints)
         poseEstimate(result.resultPoints, 640)

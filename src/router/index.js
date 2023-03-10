@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: defineAsyncComponent(() => import(`../pages/Location`)),
+      component: defineAsyncComponent(() => import(`../pages/LocationView.vue`)),
       meta: {
         title: '首页',
       },

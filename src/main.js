@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import './theme/normalize.css'
-import router from 'vue-router';
+import router from './router';
 import App from './App.vue'
 
 const app = createApp(App)
