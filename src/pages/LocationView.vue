@@ -1,36 +1,48 @@
 <script setup>
+import DrawPosition from './components/DrawPosition.vue';
 import { reactive, onBeforeUnmount, onMounted } from 'vue';
 import { BrowserCodeReader, BrowserQRCodeReader } from '@zxing/browser';
 import { POS1 } from 'js-aruco';
 
+//绘制扫描到的二维码
 var ctx = null
-// const videoLen = 'inherit', videoWid = 500;
 
 onMounted(() => {
-  const canvas = document.getElementById('canvas')
-  console.log(canvas)
+  const canvas = document.getElementById('qr_mark')
   ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#FF0000';
-
 })
 
 const state = reactive({
-  postion: {}
+  postion: {},
+  canvas: {
+    height: null,
+    width: null
+  }
 })
+
+//创建二维码识别器 
 const codeReader = new BrowserQRCodeReader()
+codeReader.options.delayBetweenScanAttempts = 500
+codeReader.options.delayBetweenScanSuccess = 500
+
 var controls = null
-console.log(codeReader)
 
 function showPostion(points) {
-  ctx.clearRect(0, 0, 649, 640)
+  ctx.clearRect(0, 0, state.canvas.width, state.canvas.height)
   for (let i = 0; i < points.length; i++) {
+    ctx.fillStyle = "green"
     ctx.fillRect(points[i].x - 10, points[i].y - 10, 20, 20);
   }
 }
 
-function poseEstimate(points, canvasWidth) {
-  let modelSize = points[0].estimatedModuleSize * 10
-  let posit = new POS1.Posit(modelSize, canvasWidth)
+function poseEstimate(points) {
+  //通过zxing估计的大小并不准确
+  // let modelSize = points[0].estimatedModuleSize * 10
+  let posit = new POS1.Posit(102, state.canvas.width)
+  for (let i = 0; i < points.length; ++i) {
+    points[i].x = points[i].x - (state.canvas.width / 2);
+    points[i].y = (state.canvas.height / 2) - points[i].y;
+  }
   let pose = posit.pose(points)
   state.postion = pose.bestTranslation
   console.log(state.postion)
@@ -40,11 +52,14 @@ async function startScan() {
   try {
     const videoInputDevices = await BrowserCodeReader.listVideoInputDevices();
     const deviceId = videoInputDevices[0].deviceId
-    console.log(codeReader)
     controls = await codeReader.decodeFromVideoDevice(deviceId, 'camera', (result) => {
+      if (!state.canvas.width || !state.canvas.height) {
+        state.canvas.height = document.getElementById("camera").offsetHeight
+        state.canvas.width = document.getElementById("camera").offsetWidth
+      }
       if (result) {
         showPostion(result.resultPoints)
-        poseEstimate(result.resultPoints, 640)
+        poseEstimate(result.resultPoints)
       }
     }
     );
@@ -63,7 +78,7 @@ onBeforeUnmount(() => controls.stop())
 </script>
  
 <template>
-  <div>
+  <div class="container">
     <input type="button" name="" id="start" @click="startScan" value="start">
     <input type="button" name="" id="stop" @click="stopScan" value="stop">
     <ul id="position">
@@ -72,8 +87,10 @@ onBeforeUnmount(() => controls.stop())
       <li id="qr-Distance">Distance:{{ state.postion[2] }}</li>
     </ul>
     <div class="video-container">
-      <canvas class="video-area" id="canvas" width="640" height="640"></canvas>
+      <canvas class="video-area" id="qr_mark" :width="state.canvas.width" :height="state.canvas.height"></canvas>
       <video class="video-area" id="camera"></video>
+      <div id="core-mark"></div>
+      <DrawPosition id="draw-position" :qr_x=state.postion[0] :qr_y=state.postion[1] :qr_z=state.postion[2]></DrawPosition>
     </div>
   </div>
 </template>
@@ -91,12 +108,13 @@ onBeforeUnmount(() => controls.stop())
 
 .video-container {
   position: relative;
-  width: auto;
-  // height: 500px;
+  width: 100%;
+  min-width: 1300px;
+  height: 100%;
 
   .video-area {}
 
-  #canvas {
+  #qr_mark {
     position: absolute;
     z-index: 1;
   }
@@ -104,5 +122,23 @@ onBeforeUnmount(() => controls.stop())
   #camera {
     // width: 1000px;
   }
+
+  #core-mark {
+    position: absolute;
+    top: 230px;
+    left: 310px;
+    width: 20px;
+    height: 20px;
+    border-radius: 100px;
+    background-color: red;
+  }
+
+  #draw-position {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    margin: 0;
+  }
+
 }
 </style>
