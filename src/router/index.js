@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { defineAsyncComponent } from 'vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -7,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: defineAsyncComponent(() => import(`../pages/LocationView.vue`)),
+      component: () => import("../pages/LocationView.vue"),
       meta: {
         title: '首页',
       },

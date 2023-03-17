@@ -10,10 +10,14 @@
   },
   "dependencies": {
     "@zxing/browser": "^0.1.1",
+    "gsap": "^3.11.4",
     "js-aruco": "^0.1.0",
+    "konva": "^8.4.2",
     "sass": "^1.58.3",
     "sass-loader": "^13.2.0",
+    "three": "^0.150.1",
     "vue": "^3.2.45",
+    "vue-konva": "^3.0.2",
     "vue-router": "^4.1.6"
   },
   "devDependencies": {
