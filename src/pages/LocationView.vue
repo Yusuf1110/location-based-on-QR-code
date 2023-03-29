@@ -3,6 +3,7 @@ import DrawPosition from './components/DrawPosition.vue';
 import { reactive, onBeforeUnmount, onMounted } from 'vue';
 import { BrowserCodeReader, BrowserQRCodeReader } from '@zxing/browser';
 import { POS1 } from 'js-aruco';
+import * as THREE from "three";
 
 //绘制扫描到的二维码
 var ctx = null
@@ -20,10 +21,37 @@ const state = reactive({
   }
 })
 
+// 创建three变量
+var scene = null, camera = null, renderer = null
+
+//create three object
+function initThreeObject() {
+  scene = new THREE.Scene()
+  camera = new THREE.PerspectiveCamera(75, state.canvas.width / state.canvas.height, 0.1, 1000)
+  camera.position.set(0, 0, 20)
+  renderer = new THREE.WebGLRenderer();
+  scene.add(camera)
+
+  const object = new THREE.Object3D(),
+    geometry = new THREE.SphereGeometry(0.5, 15, 15, Math.PI),
+    material = new THREE.MeshBasicMaterial({ color: 0xff0000}),
+    mesh = new THREE.Mesh(geometry, material);
+  object.add(mesh);
+
+  scene.add(object)
+}
+
+function render() {
+  renderer.clear()
+  renderer.render(scene, camera)
+}
+
 //创建二维码识别器 
 const codeReader = new BrowserQRCodeReader()
-codeReader.options.delayBetweenScanAttempts = 500
-codeReader.options.delayBetweenScanSuccess = 500
+{
+  codeReader.options.delayBetweenScanAttempts = 10
+  codeReader.options.delayBetweenScanSuccess = 10
+}
 
 var controls = null
 
@@ -38,14 +66,13 @@ function showPostion(points) {
 function poseEstimate(points) {
   //通过zxing估计的大小并不准确
   // let modelSize = points[0].estimatedModuleSize * 10
-  let posit = new POS1.Posit(102, state.canvas.width)
+  let posit = new POS1.Posit(30, state.canvas.width)
   for (let i = 0; i < points.length; ++i) {
     points[i].x = points[i].x - (state.canvas.width / 2);
     points[i].y = (state.canvas.height / 2) - points[i].y;
   }
   let pose = posit.pose(points)
   state.postion = pose.bestTranslation
-  console.log(state.postion)
 }
 
 async function startScan() {
@@ -90,7 +117,8 @@ onBeforeUnmount(() => controls.stop())
       <canvas class="video-area" id="qr_mark" :width="state.canvas.width" :height="state.canvas.height"></canvas>
       <video class="video-area" id="camera"></video>
       <div id="core-mark"></div>
-      <DrawPosition id="draw-position" :qr_x=state.postion[0] :qr_y=state.postion[1] :qr_z=state.postion[2]></DrawPosition>
+      <DrawPosition id="draw-position" :qr_x=state.postion[0] :qr_y=state.postion[1] :qr_z=state.postion[2]>
+      </DrawPosition>
     </div>
   </div>
 </template>

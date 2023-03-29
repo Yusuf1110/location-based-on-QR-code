@@ -12,6 +12,22 @@ const router = createRouter({
       },
     },
     {
+      path: '/test',
+      name: 'test',
+      component: () => import("../pages/TestView.vue"),
+      meta: {
+        title: '测试',
+      },
+    },
+    {
+      path: '/QRcodeCreate',
+      name: 'QRcodeCreate',
+      component: () => import("../pages/QRcodeCreate.vue"),
+      meta: {
+        title: '生成二维码',
+      },
+    },
+    {
       path: '/*',
       redirect: '/',
     },
