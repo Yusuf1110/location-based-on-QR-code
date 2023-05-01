@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev_local": "vite ",
+    "dev": "vite --host 10.214.46.128",
     "build": "vite build",
     "preview": "vite preview"
   },

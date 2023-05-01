@@ -31,7 +31,7 @@ var scene = null,
 function initThree() {
   // 拿到dom容器
   {
-    container = document.getElementById("positionSpace")
+    container = document.getElementById("position-space")
   }
 
   // 创建场景
@@ -102,14 +102,9 @@ onMounted(() => {
 </script>
  
 <template>
-  <div class="container">
-    <canvas id="positionSpace" width="640" height="480"></canvas>
+  <div class="draw-position-container">
+    <canvas id="position-space" width="480" height="360"></canvas>
   </div>
 </template>
  
-<style scoped lang="scss">
-.container {
-  width: 640px;
-  height: 480px;
-}
-</style>
+<style scoped lang="scss"></style>

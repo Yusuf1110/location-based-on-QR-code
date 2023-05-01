@@ -6,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import("../pages/LocationView.vue"),
+      component: () => import("../pages/CarLocationView.vue"),
       meta: {
         title: '首页',
       },
