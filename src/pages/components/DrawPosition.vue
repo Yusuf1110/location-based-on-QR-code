@@ -42,7 +42,7 @@ function initThree() {
   // 创建相机
   {
     const fov = 75
-    const aspect = 640 / 480
+    const aspect = 480 / 360
     const near = 0.1
     const far = 1000
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
