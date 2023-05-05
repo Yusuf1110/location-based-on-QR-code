@@ -6,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import("../pages/CarLocationView.vue"),
+      component: () => import("../pages/QRNavigation.vue"),
       meta: {
         title: '首页',
       },

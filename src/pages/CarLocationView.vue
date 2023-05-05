@@ -2,26 +2,16 @@
 import DrawPosition from './components/DrawPosition.vue';
 import DrawPosture from './components/DrawPosture.vue';
 import carRequest from '../apis/carControl';
+import createWebcamQRScanner from '../utils/webCam.js'
 import { reactive, onBeforeUnmount, onMounted } from 'vue';
-import { BrowserQRCodeReader } from '@zxing/browser';
 import { POS1 } from 'js-aruco';
 
-const
-  VIDEO_WIDTH = 1080,
-  VIDEO_HEIGHT = 1920,
-  CANVAS_WIDTH = 480,
-  CANVAS_HEIGHT = 360,
-  CANVAS_RATIO = CANVAS_WIDTH / CANVAS_HEIGHT,
-  QR_SIZE = 60
+const QR_SIZE = 120
 
 
 var componentGlobal = {
-  ctxMark: null,
-  ctxAndVideoWidthRate: null,
-  ctxAndVideoHeightRate: null,
-  videoHeight: null,
-  videoWidth: null,
-  video: null,
+  canvas: null,
+  canvasElement: null,
   scanControl: null,
 }
 
@@ -32,140 +22,76 @@ const state = reactive({
     [0, 0, 0],
     [0, 0, 0],
   ],
-  canvas: {
-    width: null,
-    height: null,
-  }
 })
 
-//创建二维码识别器 
-const codeReader = new BrowserQRCodeReader()
-{
-  codeReader.options.delayBetweenScanAttempts = 10
-  codeReader.options.delayBetweenScanSuccess = 10
+function drawLine(begin, end, color) {
+  let canvas = componentGlobal.canvas
+  canvas.beginPath();
+  canvas.moveTo(begin.x, begin.y);
+  canvas.lineTo(end.x, end.y);
+  canvas.lineWidth = 4;
+  canvas.strokeStyle = color;
+  canvas.stroke();
 }
 
-function showPostion(points) {
-  const { ctxMark, ctxAndVideoWidthRate, ctxAndVideoHeightRate } = componentGlobal
-  ctxMark.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-  let cornerX = null, cornerY = null
-  for (let i = 0; i < points.length; i++) {
-    cornerX = points[i].x * ctxAndVideoWidthRate - 10
-    cornerY = points[i].y * ctxAndVideoHeightRate - 10
-    ctxMark.fillStyle = "green"
-    ctxMark.fillRect(cornerX, cornerY, 20, 20);
-  }
+function drawPoint(point, color) {
+  let canvas = componentGlobal.canvas
+  canvas.beginPath();
+  canvas.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+  canvas.fillStyle = color;
+  canvas.fill();
+}
+
+function showPostion(location) {
+  drawLine(location.topLeftCorner, location.topRightCorner, "#FF3B58");
+  drawLine(location.topRightCorner, location.bottomRightCorner, "#FF3B58");
+  drawLine(location.bottomRightCorner, location.bottomLeftCorner, "#FF3B58");
+  drawLine(location.bottomLeftCorner, location.topLeftCorner, "#FF3B58")
+  drawPoint(location.bottomLeftFinderPattern, "#2fffff");
+  drawPoint(location.bottomRightAlignmentPattern, "#2fffff");
+  drawPoint(location.topLeftFinderPattern, "#2fffff");
+  drawPoint(location.topRightFinderPattern, "#2fffff");
 }
 
 function poseEstimate(points) {
-  const { videoWidth, videoHeight } = componentGlobal
-  // let modelSize = points[0].estimatedModuleSize * 10
-  // const len1 = 415
-  // const len2 = 830
-  // const len3 = 1245
+  const { canvasElement } = componentGlobal
+  const width = canvasElement.width
+  const height = canvasElement.height
+
   for (let i = 0; i < points.length; ++i) {
-    points[i].x = points[i].x - (videoWidth / 2);
-    points[i].y = (videoHeight / 2) - points[i].y;
+    points[i].x = points[i].x - (width / 2);
+    points[i].y = (height / 2) - points[i].y;
   }
 
-  let posit = new POS1.Posit(QR_SIZE, videoWidth)
+  let posit = new POS1.Posit(QR_SIZE, width)
 
   let pose = posit.pose(points)
 
   state.postion = pose.bestTranslation
   state.rotation = pose.bestRotation
-  console.log(pose)
 }
 
-async function startScan() {
-  componentGlobal.scanControl = await codeReader.decodeFromVideoElement(componentGlobal.video, (res) => {
-    if (res) {
-      showPostion(res.resultPoints)
-      poseEstimate(res.resultPoints)
-    }
-  });
-}
-
-function videoToCanvasCorrectSize(stream) {
-  let track = stream.getVideoTracks();
-  let videoHeight = track[0].getSettings().height
-  let videoWidth = track[0].getSettings().width
-  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-    [videoHeight, videoWidth] = [videoWidth, videoHeight]
-  }
-  let ctxHeight = null
-  let ctxWidth = null
-  let videoRatio = videoWidth / videoHeight
-  if (videoRatio > CANVAS_RATIO) {
-    ctxWidth = CANVAS_WIDTH
-    ctxHeight = videoHeight * (CANVAS_WIDTH / videoWidth)
-  } else {
-    ctxHeight = CANVAS_HEIGHT
-    ctxWidth = videoWidth * (CANVAS_HEIGHT / videoHeight)
-  }
-  state.canvas.width = ctxWidth
-  state.canvas.height = ctxHeight
-  componentGlobal.videoHeight = videoHeight
-  componentGlobal.videoWidth = videoWidth
-  componentGlobal.ctxAndVideoWidthRate = ctxWidth / videoWidth
-  componentGlobal.ctxAndVideoHeightRate = ctxHeight / videoHeight
-
-  alert("videoHeight: " + videoHeight + " videoWidth: " + videoWidth + " realCanvasHeight: " + ctxHeight + " realCanvasWidth: " + ctxWidth)
-
-}
-
-async function createVideoStream() {
-
-  if (navigator.mediaDevices === undefined) {
-    navigator.mediaDevices = {};
-  }
-  if (navigator.mediaDevices.getUserMedia === undefined) {
-    navigator.mediaDevices.getUserMedia = function (constraints) {
-      var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-
-      if (!getUserMedia) {
-        return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
-      }
-
-      return new Promise(function (resolve, reject) {
-        getUserMedia.call(navigator, constraints, resolve, reject);
-      });
-    }
-  }
-
-  try {
-    const container = {
-      video: {
-        height: VIDEO_HEIGHT,
-        width: VIDEO_WIDTH,
-        facingMode: 'environment',
-      },
-    }
-    let stream = await navigator.mediaDevices.getUserMedia(container)
-
-    if ("srcObject" in componentGlobal.video) {
-      componentGlobal.video.srcObject = stream;
-      videoToCanvasCorrectSize(stream)
-    } else {
-      componentGlobal.video.src = window.URL.createObjectURL(stream);
-    }
-  } catch (err) {
-    console.log(err.name + ": " + err.message);
-  }
-}
-
-function stopScan() {
-  const { ctxMark, scanControl } = componentGlobal
-  ctxMark.clearRect(0, 0, 1000, 1000)
-  scanControl && scanControl.stop()
+function getQRInfoToDo(qrInfo) {
+  let corners = [qrInfo.location.topLeftCorner, qrInfo.location.topRightCorner, qrInfo.location.bottomRightCorner, qrInfo.location.bottomLeftCorner]
+  showPostion(qrInfo.location)
+  poseEstimate(corners)
 }
 
 function init() {
-  componentGlobal.video = document.getElementById('camera')
-
-  const canvasOfMark = document.getElementById('qr-mark')
-  componentGlobal.ctxMark = canvasOfMark.getContext('2d');
-  createVideoStream()
+  const canvasElement = document.getElementById('qr-mark')
+  const canvas = canvasElement.getContext('2d');
+  componentGlobal.canvasElement = canvasElement
+  componentGlobal.canvas = canvas
+  const webCamParams = {
+    canvasElement,
+    canvas,
+    VIDEO_WIDTH: 1080,
+    VIDEO_HEIGHT: 720,
+    CANVAS_WIDTH: 480,
+    CANVAS_HEIGHT: 360,
+    getQRInfoToDo: getQRInfoToDo
+  }
+  createWebcamQRScanner(webCamParams)
 }
 
 const carControls = {
@@ -223,10 +149,6 @@ onBeforeUnmount(() => componentGlobal.scanControl.stop())
 <template>
   <main class="car-location-view-container">
     <div class="content" id="control">
-      <div class="control-scan">
-        <input type="button" class="control-btn" id="scan-start" @click="startScan" value="start">
-        <input type="button" class="control-btn" id="scan-stop" @click="stopScan" value="stop">
-      </div>
       <div class="control-car" @mousedown.stop="(target) => carRun(target)" @mouseup.stop="(target) => carStop(target)"
         @touchstart="(target) => carRun(target)" @touchend="(target) => carStop(target)">
         <button v-for="item in carControls" :id="item.id" class="control-btn" :key="item.id">{{
@@ -239,8 +161,7 @@ onBeforeUnmount(() => componentGlobal.scanControl.stop())
       </ul>
     </div>
     <div class="content" id="scan">
-      <canvas class="video-area" id="qr-mark" :width="state.canvas.width" :height="state.canvas.height"></canvas>
-      <video class="video-area" autoplay=true id="camera" :width="CANVAS_WIDTH" :height="CANVAS_HEIGHT"></video>
+      <canvas class="video-area" id="qr-mark"></canvas>
     </div>
     <div class="content" id="draw-route">
       <DrawPosture :rotation=state.rotation></DrawPosture>
@@ -340,10 +261,8 @@ onBeforeUnmount(() => componentGlobal.scanControl.stop())
 
     }
 
-    #camera {}
-
     #qr-mark {
-      z-index: 1;
+      z-index: 10;
       position: absolute;
       top: 50%;
       left: 50%;

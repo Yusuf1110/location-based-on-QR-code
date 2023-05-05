@@ -35,7 +35,11 @@ function initThree() {
 
   // 创建相机
   {
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const fov = 75
+    const aspect = 480 / 360
+    const near = 0.1
+    const far = 1000
+    camera = new THREE.PerspectiveCamera(fov,  aspect, near, far);
     camera.position.z = 5;
   }
 
@@ -69,6 +73,9 @@ function animate() {
   requestAnimationFrame(animate);
   let rotation = props.rotation
   // 通过改变传入的参数来修改正方形的3D姿态
+  // cube.rotation.x = Math.atan2(rotation[2][1],rotation[2][2])
+  // cube.rotation.y = Math.atan2(-rotation[2][0], Math.sqrt(Math.pow(rotation[2][1], 2) + Math.pow(rotation[2][2], 2)))
+  // cube.rotation.z = Math.atan2(rotation[1][0], rotation[0][0])
   cube.rotation.x = -Math.asin(-rotation[1][2]);
   cube.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
   cube.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
